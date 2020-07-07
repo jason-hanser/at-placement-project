@@ -1,0 +1,345 @@
+---
+output: 
+  html_document:
+    theme: default
+    highlight: haddock
+    df_print: tibble
+---
+
+<style>
+h1 {
+  padding-bottom: 20px;
+}
+.main-container {
+  max-width: 70%;
+  margin-left: 15%;
+  margin-right: 15%;
+  text-align: justify;
+}
+.container{
+  max-width: 100%;
+  margin-left: 0;
+  margin-right: 0;
+  padding-right: 0;
+  padding-left: 0;
+}
+border {
+  padding: 10px;
+}
+</style>
+
+
+``` {r, echo = FALSE, message = FALSE}
+
+## Loading libraries
+
+library(dplyr)
+library(tidyr)
+library(stringr)
+library(clue)
+library(kableExtra)
+library(knitr)
+
+## Loading Data Files
+
+AT_COURSES    <- read.csv("Data//at_courses.csv", stringsAsFactors = FALSE)
+AT_SELECTIONS <- read.csv("Data//at_selections.csv", stringsAsFactors = FALSE)
+
+## Loading supporting data files (i.e. related majors)
+
+RELATED_DISP_WTS <- read.csv("Data/Supporting Data/related_discipline_weights.csv", stringsAsFactors = FALSE)  
+
+```
+
+# Autumn Term Placement Program
+
+### Introduction
+
+Autumn Term is a condensed, three week term at Eckerd College taken by all first year students. The term precedes the normal, 16 week fall semester and is designed to introduce incoming students to the college and the expectations of college coursework. Each student is enrolled in a single course, which are special topic courses created specifically for Autumn Term. 
+
+Prior to arriving on campus, students complete a survey where they are asked about their Autumn Term course preferences. Presented with a list and description of courses, students select six courses in which they are interested. Then, students are enrolled in one of those six courses --- more or less at random. 
+
+In 2019, the college decided to change how students are placed into Autumn Term sections based on some research I had conducted a couple of years earlier. The research showed that a student's Autumn Term course had an effect the student's choice of major. Essentially, students are more likely to major in their Autumn Term professor's discipline --- even when the student hadn't listed the discipline as one of their intended majors. As a result, the college tasked me to develop a method for placing students in Autumn Term courses based on their intended majors. 
+
+
+### Project Overview
+
+The goal was to write a program that places students into Autumn Term sections, such that:
+
+* **Students should be placed into sections related to their intended major.** Aside from influencing students' choice of majors, the college wanted to enable students to more quickly form relationships with professors from their intended major. 
+
+* **If a student can’t be placed into a section related to their intended major, they should be placed into a section related to the foreign language they intend on taking.** In addition to considering the intended majors of incoming students, the college also wanted to consider the foreign language they intend on taking. The idea being that if a student can’t be placed into a section related to their intended major, they might be able to be placed into a section taught by a professor who teaches their intended foreign language --- enabling them to form a relationship with a professor they have again.
+
+* **Undecided students should be placed into sections from smaller programs.** There is a huge imbalance in the size of various majors at Eckerd College. Frankly, we don't need more biology and psychology majors, so the college wanted to steer undecided students towards sections taught by professors from smaller disciplines in hopes that we might be able to grow those majors.
+
+* **Students with multiple intended majors should be placed into sections related to the least popular of their intended majors.** Again, the college wanted to steer students towards sections taught by professor from less popular disciples. So, for example, if a student listed biology and art as their intended majors, the student would be placed Autumn Term section taught by an art professor --- since it is a less popular major than biology. 
+
+* **The gender balance of sections is relatively equal.** Eckerd College is roughly 70% female and the college didn't want to end up with a bunch of female-only sections. 
+
+* **No more than 60% of a section is comprised of students who intend on majoring in the professor's discipline.** The college wanted students' Autumn Term courses to be more in line with their interest, but they didn't want to create de-facto major courses by only enrolling those students. Rather, they wanted to maintain the interdisciplinary nature of Autumn Term courses. 
+
+To accomplish this, we can think of this project as the [assignment problem](https://en.wikipedia.org/wiki/Assignment_problem). In this case, students are the agents and the courses --- or, rather, the seats within each course --- are the tasks. Here, we will walk through my solution for this project. 
+
+
+### The Data
+
+The Autumn Term placement program takes three data frames as input. I've created and uploaded a few mock data sets based on the real data so that you can follow along. 
+
+The first, `AT_COURSES`, contains a list of courses being offered in offered in Autumn Term along with the discipline of the assigned professor and the size of the discipline (i.e. big, medium, small). It also includes the language taught by the assigned professor, if applicable. 
+
+<br>
+``` {r, echo = FALSE}
+
+kable(x = AT_COURSES,
+      row.names = FALSE,
+      format = "html") %>%
+  kable_styling() %>%
+  scroll_box(height  = "200px")
+
+```
+<br>
+
+The second, `AT_SELECTIONS`, contains the six courses selected by each student as part of the survey about their Autumn Term course preferences as well as their intended major and the foreign language they plan on taking. 
+
+<br>
+``` {r, echo = FALSE}
+
+kable(x = AT_SELECTIONS,
+      row.names = FALSE,
+      format = "html") %>%
+  kable_styling() %>%
+  scroll_box(height  = "200px")
+
+```
+<br>
+
+And, the third data frame, `RELATED_DISP_WTS`, contains a list of majors and related disciplines as well as a weight for each pairing. Ideally we want to place students into sections where the professor's discipline matches the intended major of the student. However, that isn't always possible. And, in those cases, we want to place the student into a section taught by a professor from a discipline related to their intended major. For example, a student who intends to major in chemistry might not select an Autumn Term section taught by a chemistry professor as one of their six choices. Or, there might not be an Autumn Term section taught by a chemistry  professor that year. But, they might have selected a section taught by a biochemistry professor, which is related to chemistry. The `RELATED_DISP_WTS` data frame allows us to match intended majors with related disciplines. 
+
+<br>
+``` {r, echo = FALSE}
+
+kable(x = RELATED_DISP_WTS,
+      row.names = FALSE,
+      format = "html") %>%
+  kable_styling() %>%
+  scroll_box(height  = "200px")
+
+```
+<br>
+
+
+### Step 1: Preparing the Data
+
+After loading the data, we have to prep the data before assigning weights to each task (i.e. seats within a course).
+
+First, we create a data frame `SEATS.` Since the number of incoming students changes from year to year, the number of students within each section also changes. When creating the seats data frame, we create just enough seats to place all of the incoming students --- which helps keep the sections balanced. 
+
+``` {r, attr.source = ".numberLines", eval = FALSE}
+
+## Creating SEATS data frame
+
+AT_COURSES %>%
+  slice(rep(x    = 1:n(), 
+            each = ceiling(length(unique(AT_SELECTIONS$STUDENT_ID))/length(unique(AT_COURSES$SECTION_ID))))) %>%
+  group_by(SECTION_ID) %>%
+  mutate(SEAT_NUMBER = row_number()) %>%
+  ungroup() %>%
+  select(SECTION_ID,
+         SEAT_NUMBER) -> AT_SEATS
+
+```
+
+Next, we need to establish rules for who can be assigned to each seat. This prevents too many or too few males being placed in any section. It also ensures that no section is filled with only major students. 
+
+``` {r, attr.source = ".numberLines", eval = FALSE}
+
+## Reserving 30% of seats for male students to preserve gender balance across sections
+
+AT_SEATS %>%
+  group_by(SECTION_ID) %>%
+  mutate(SEAT_SEX = case_when(row_number() <= max(row_number())*0.40 ~ "FEMALE_ONLY",
+                              row_number() <= max(row_number())*0.65 ~ "MALE_ONLY",
+                              TRUE ~ "ANY")) %>%
+  ungroup() -> AT_SEATS
+
+## Reserving ~40% of seats for non-majors
+
+AT_SEATS %>%
+  group_by(SECTION_ID,
+           SEAT_SEX) %>%
+  mutate(SEAT_MAJOR = case_when(row_number() <= ceiling(max(row_number())*0.4) ~ "NON_MAJOR_ONLY", 
+                                TRUE ~ "ANY")) %>%
+  ungroup() -> AT_SEATS
+
+```
+
+Then, we assign weights to each discipline and join the `AT_SEATS` data frame onto the `AT_COURSES` data frame. The discipline weights will help steer students towards smaller disciplines.  
+
+``` {r, attr.source = ".numberLines", eval = FALSE}
+
+## Assigning weights to discipline and joining SEATS onto AT_COURSES
+
+AT_COURSES %>%
+  mutate(DISCIPLINE_WEIGHT = case_when(DISCIPLINE_SIZE == "BIG"    ~ 0.01,
+                                       DISCIPLINE_SIZE == "MEDIUM" ~ 0.5,
+                                       DISCIPLINE_SIZE == "SMALL"  ~ 1.0,
+                                       TRUE ~ 0.1)) %>%
+  left_join(y  = AT_SEATS,
+            by = c("SECTION_ID")) -> AT_SEATS
+
+```
+
+
+### Step 2: Weighting Seats
+
+After prepping the data, we assign weights to each seat. We start by joining `AT_SEATS` onto `AT_SELECTIONS` and assigning each seat an initial weight of 10. 
+
+``` {r, attr.source = ".numberLines", eval = FALSE}
+
+## Joining AT_SEATS onto AT_SELECTIONS and setting an initial weight of 10
+
+AT_SELECTIONS %>%
+  left_join(y = AT_SEATS,
+            by = c("SECTION_ID")) %>%
+  mutate(WEIGHT = 10) -> AT_WEIGHTS
+
+```
+
+Then, we adjust the seat weights based sex and intended major. If the student's sex does not match the seat's sex, the weight is changed to 0. This prevents male students from being assigned to seats reserved for females and vice versa. Similarly, we change the weight to 0 if the seat is reserved for non-major students the one of the student's intended majors matches the professor's discipline.
+
+``` {r, attr.source = ".numberLines", eval = FALSE}
+
+## Blocking off males seats
+
+AT_WEIGHTS %>%
+  mutate(WEIGHT = case_when(SEAT_SEX == "MALE_ONLY"   & SEX != "M" ~ 0,
+                            SEAT_SEX == "FEMALE_ONLY" & SEX != "F" ~ 0,
+                            TRUE ~ WEIGHT)) %>%
+  select(-SEAT_SEX) -> AT_WEIGHTS
+
+## Blocking off seats for non-majors
+
+AT_WEIGHTS %>%
+  mutate(WEIGHT = case_when(SEAT_MAJOR == "NON_MAJOR_ONLY" & MAJOR_1 == PROF_DISCIPLINE ~ 0,
+                            SEAT_MAJOR == "NON_MAJOR_ONLY" & MAJOR_2 == PROF_DISCIPLINE ~ 0,
+                            TRUE ~ WEIGHT)) %>%
+  select(-SEAT_MAJOR) -> AT_WEIGHTS
+
+```
+
+Next, we adjust the seat weights based on the intended majors of each student. We start by joining `RELATED_MAJORS_WTS` onto `AT_WEIGHTS.` Since some student have two intended majors, we do this twice and store the highest weight of the related majors to the `RELATED_DEPT_WEIGHT` variable. Then, we multiply the seat weight by a factor depending on each student's intended major and the professor's discipline. The result is that students should be steer into sections taught by professors from disciplines related to their intended major or a foriegn language that the student is interested is taking. 
+
+
+``` {r, attr.source = ".numberLines", eval = FALSE}
+
+## Joining RELATED_MAJOR_WTS onto AT_WEIGHTS
+
+AT_WEIGHTS %>%
+  left_join(y  = RELATED_MAJOR_WTS,
+            by = c("MAJOR_1"    = "INTENDED_MAJOR",
+                   "PROF_DISCIPLINE" = "RELATED_DEPT")) %>%
+  left_join(y  = RELATED_MAJOR_WTS,
+            by = c("MAJOR_2"    = "INTENDED_MAJOR",
+                   "PROF_DISCIPLINE" = "RELATED_DEPT")) %>%
+  mutate(RELATED_DEPT_WEIGHT.x = ifelse(is.na(RELATED_DEPT_WEIGHT.x) == TRUE, 0, RELATED_DEPT_WEIGHT.x),
+         RELATED_DEPT_WEIGHT.y = ifelse(is.na(RELATED_DEPT_WEIGHT.y) == TRUE, 0, RELATED_DEPT_WEIGHT.y),
+         RELATED_DEPT_WEIGHT   = ifelse(RELATED_DEPT_WEIGHT.x > RELATED_DEPT_WEIGHT.y, RELATED_DEPT_WEIGHT.x, RELATED_DEPT_WEIGHT.y)) %>%
+  select(-RELATED_DEPT_WEIGHT.x,
+         -RELATED_DEPT_WEIGHT.y) -> AT_WEIGHTS
+
+## Adjust weights based on academic intersts
+
+AT_WEIGHTS %>%
+  mutate(WEIGHT = case_when(MAJOR_1 != "Undecided" & RELATED_DEPT_WEIGHT > 0 ~ WEIGHT*RELATED_DEPT_WEIGHT,
+                            MAJOR_1 != "Undecided" & INTENDED_LANGUAGE == PROF_LANGUAGE ~ WEIGHT*0.25,
+                            MAJOR_1 == "Undecided" ~ WEIGHT*0.5,
+                            TRUE ~ WEIGHT*0.1)) %>%
+  select(-RELATED_DEPT_WEIGHT,
+         -PROF_DISCIPLINE,
+         -INTENDED_LANGUAGE,
+         -PROF_LANGUAGE) -> AT_WEIGHTS
+
+```
+
+Lastly, we multiply the seat weights by the discipline weight, which is determined by the popularity of each discipline. This helps steer students towards smaller disciplines when they express an interest in multiple majors. Similarly, it ensures that undecided students also end up in sections taught by professors from less popular disciplines.
+
+``` {r, attr.source = ".numberLines", eval = FALSE}
+
+## Multiplying by discipline weights
+
+AT_WEIGHTS %>%
+  mutate(WEIGHT = WEIGHT*DISCIPLINE_WEIGHT) %>%
+  select(-DISCIPLINE_WEIGHT,
+         -DISCIPLINE_SIZE) -> AT_WEIGHTS
+
+```
+
+### Step 3: Matrix Construction & Placement
+
+After adjusting the seat weights, we create the final matrix that will serve as the input for the optimization function. To do this, we re-shape the data so that there is one row per students and one column per course seat. Then, we replace the missing values --- meaning the student didn't select that course as one their six choices --- with zeros. 
+
+``` {r, attr.source = ".numberLines", eval = FALSE}
+
+## Re-shaping the data to create the final matrix
+
+AT_WEIGHTS %>%
+  transmute(STUDENT_ID = STUDENT_ID,
+            SEAT      = paste("SEAT", SECTION_ID, SEAT_NUMBER, sep = "_"),
+            WEIGHT    = WEIGHT) %>%
+  spread(SEAT,
+         WEIGHT) %>%
+  mutate_at(.vars = vars(matches("SEAT_")),
+            .funs = funs(ifelse(is.na(.), 0, .))) -> matrix_SEATS
+
+```
+
+In order to keep the sections balanced in terms of enrollment, we add a few additional rows to our matrix. These rows represent 'dummy students` and only one 'dummy student' can be placed into each section. 
+
+``` {r, attr.source = ".numberLines", eval = FALSE}
+
+## Adding in Dummy students tokeep the sections balanced
+
+matrix_SEATS[nrow(AT_SEATS), ] <- NA
+
+matrix_SEATS %>%
+  mutate(STUDENT_ID = ifelse(is.na(STUDENT_ID) == TRUE, paste("DUMMY_", row_number()), STUDENT_ID)) %>%
+  mutate_at(.vars = vars(matches("SEAT_\\d*_1$")),
+            .funs = funs(ifelse(is.na(.) == TRUE, 1, .))) %>%
+  mutate_at(.vars = vars(matches("SEAT_")),
+            .funs = funs(ifelse(is.na(.) == TRUE, 0, .))) -> matrix_SEATS
+
+
+```
+
+Finally, we solve the matrix using the `solve_LSAP` function from the `clue` package. Since we want students to be placed into seats with the highest weight, we specify `maximum = TRUE`. This function returns an array of numbers corresponding to the column id of the assignment for each student.
+
+After adding the assignments (`AT_PLACEMENTS`) to `matrix_SEATS`, we extract the `SECTION_ID` from the appropriate column name. This information is then written to file and sent to the registrar's office.
+
+``` {r, attr.source = ".numberLines", eval = FALSE}
+
+## Solving the matrix
+
+matrix_SEATS %>%
+  select(-STUDENT_ID) %>%
+  as.matrix() %>%
+  solve_LSAP(maximum = TRUE) %>%
+  as.numeric() -> AT_PLACEMENTS
+
+## Getting the assigned section for each student
+
+matrix_SEATS %>%
+  mutate(ASSIGNMENT = AT_PLACEMENTS) %>%
+  filter(str_detect(STUDENT_ID, "DUMMY_") == FALSE) %>%
+  transmute(STUDENT_ID = STUDENT_ID,
+            SECTION_ID = str_extract(names(.)[ASSIGNMENT+1], "(?<=SEAT_)C_\\d*(?=_)")) %>%
+  select(STUDENT_ID,
+         SECTION_ID) -> AT_PLACEMENTS
+
+```
+
+
+### Results & Final Remarks
+
+In our first year of implementing this strategy, we were able to place 30% of incoming students into a section where the student had an interest in the professor's discipline. In the prior year --- where students were placed into sections at random --- that number was just 7%. And, Autumn Term sections taught by professors from less popular majors saw a significant increases in the number of students with an interest in that discipline. Moreover, every undecided student was placed into a section taught by a professor from a smaller discipline. 
+
+It’s still too early to tell what sort of effect the new placement strategy will have on major declarations. Because we are most interested in small disciplines, it will likely take a few years to build up a suitable sample size for an analysis. However, faculty of small disciplines are excited to be teaching students who have an actual interest in their field. Moreover, the admissions office reported a drastic reduction in the number of complaints from parents and students about Autumn Term placements.

@@ -1,0 +1,133 @@
+INTENDED_MAJOR,RELATED_DISP,RELATED_DISP_WEIGHT
+American Studies,American Studies,1
+American Studies,History,0.75
+American Studies,(none),0
+Ancient Studies,Ancient Studies,1
+Ancient Studies,History,0.75
+Ancient Studies,(none),0
+Animal Studies,Animal Studies,1
+Animal Studies,Psychology,0.5
+Animal Studies,(none),0
+Anthropology,Anthropology,1
+Anthropology,(none),0
+Anthropology,(none),0
+Biochemistry,Biochemistry,1
+Biochemistry,Chemistry,0.75
+Biochemistry,(none),0
+Biology,Biology,1
+Biology,(none),0
+Biology,(none),0
+Business Administration,Business Administration,1
+Business Administration,Management,0.75
+Business Administration,(none),0
+Chemistry,Chemistry,1
+Chemistry,Biochemistry,0.75
+Chemistry,(none),0
+Communication,Communication,1
+Communication,Rhetoric,0.75
+Communication,Composition,0.5
+Comparative Literature,Comparative Literature,1
+Comparative Literature,Literature,0.75
+Comparative Literature,(none),0
+Computer Science,Computer Science,1
+Computer Science,(none),0
+Computer Science,(none),0
+Creative Writing,Creative Writing,1
+Creative Writing,Literature,0.75
+Creative Writing,(none),0
+East Asian Studies,East Asian Studies,1
+East Asian Studies,Chinese,0.75
+East Asian Studies,Japanese,0.75
+Economics,Economics,1
+Economics,(none),0
+Economics,(none),0
+Engineering,Engineering,1
+Engineering,Physics,0.75
+Engineering,Mathematics,0.5
+Environmental Studies,Environmental Studies,1
+Environmental Studies,(none),0
+Environmental Studies,(none),0
+Film Studies,Film Studies,1
+Film Studies,(none),0
+Film Studies,(none),0
+French,French,1
+French,(none),0
+French,(none),0
+Geosciences,Geosciences,1
+Geosciences,(none),0
+Geosciences,(none),0
+History,History,1
+History,(none),0
+History,(none),0
+Human Development,Human Development,1
+Human Development,Psychology,0.75
+Human Development,(none),0
+Humanities,Humanities,1
+Humanities,(none),0
+Humanities,(none),0
+Interdisciplinary Arts,Interdisciplinary Arts,1
+Interdisciplinary Arts,Visual Arts,0.75
+Interdisciplinary Arts,(none),0
+International Business,International Business,1
+International Business,Management,0.75
+International Business,(none),0
+International Studies,International Studies,1
+International Studies,Intl Relations/Global Affairs,0.75
+International Studies,(none),0
+Intl Relations/Global Affairs,Intl Relations/Global Affairs,1
+Intl Relations/Global Affairs,Political Science,0.75
+Intl Relations/Global Affairs,International Studies,0.5
+Literature,Literature,1
+Literature,Creative Writing,0.75
+Literature,(none),0
+Management,Management,1
+Management,Business Administration,0.5
+Management,(none),0
+Marine Science,Marine Science,1
+Marine Science,(none),0
+Marine Science,(none),0
+Mathematics,Mathematics,1
+Mathematics,Physics,0.75
+Mathematics,(none),0
+Music,Music,1
+Music,(none),0
+Music,(none),0
+Philosophy,Philosophy,1
+Philosophy,(none),0
+Philosophy,(none),0
+Physics,Physics,1
+Physics,Mathematics,0.75
+Physics,(none),0
+Political Science,Political Science,1
+Political Science,(none),0
+Political Science,(none),0
+Pre-Law,Pre-Law,1
+Pre-Law,Political Science,0.75
+Pre-Law,(none),0
+Pre-Medicine,Pre-Medicine,1
+Pre-Medicine,Biology,0.75
+Pre-Medicine,(none),0
+Pre-Veterinary,Pre-Veterinary,1
+Pre-Veterinary,Biology,0.75
+Pre-Veterinary,(none),0
+Psychology,Psychology,1
+Psychology,(none),0
+Psychology,(none),0
+Religious Studies,Religious Studies,1
+Religious Studies,Philosophy,0.75
+Religious Studies,(none),0
+Sociology,Sociology,1
+Sociology,(none),0
+Sociology,(none),0
+Spanish,Spanish,1
+Spanish,(none),0
+Spanish,(none),0
+Theatre,Theatre,1
+Theatre,(none),0
+Theatre,(none),0
+Visual Arts,Visual Arts,1
+Visual Arts,Art History,0.75
+Visual Arts,(none),0
+Women's & Gender Studies,Women's & Gender Studies,1
+Women's & Gender Studies,(none),0
+Women's & Gender Studies,(none),0

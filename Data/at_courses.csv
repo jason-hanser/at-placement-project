@@ -1,0 +1,21 @@
+SECTION_ID,PROF_ID,PROF_DISCIPLINE,DISCIPLINE_SIZE,PROF_LANGUAGE
+C_001,P_001,Management,MEDIUM,N/A
+C_002,P_002,Rhetoric,N/A,N/A
+C_003,P_003,Political Science,MEDIUM,N/A
+C_004,P_004,Humanities,SMALL,Greek
+C_005,P_005,Chinese,N/A,Chinese
+C_006,P_006,Italian,N/A,Italian
+C_007,P_007,Theatre,SMALL,N/A
+C_008,P_008,Economics,SMALL,N/A
+C_009,P_009,French,SMALL,French
+C_010,P_010,Theatre,SMALL,N/A
+C_011,P_011,Literature,SMALL,N/A
+C_012,P_012,Rhetoric,N/A,N/A
+C_013,P_013,Computer Science,SMALL,N/A
+C_014,P_014,History,SMALL,N/A
+C_015,P_015,International Business,SMALL,N/A
+C_016,P_016,Creative Writing,MEDIUM,N/A
+C_017,P_017,Philosophy,SMALL,N/A
+C_018,P_018,Humanities,SMALL,Greek
+C_019,P_019,Biology,BIG,N/A
+C_020,P_020,Sociology,SMALL,N/A
